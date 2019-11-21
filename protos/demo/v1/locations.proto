@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package demo.v1;
+
+message Location {
+  int64 id = 1;
+  int64 warehouse_id = 2;
+  string code = 3;
+  string address = 4;
+}
+
+message GetLocationsRequest {
+  int64 warehouse_id = 1;
+}
+
+message GetLocationsResponse {
+  repeated Location locations = 1;
+}
+
+service LocationRetrieval {
+  rpc GetLocations (GetLocationsRequest) returns (GetLocationsResponse) {}
+}
