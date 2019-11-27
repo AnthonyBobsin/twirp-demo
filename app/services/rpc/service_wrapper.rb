@@ -3,6 +3,8 @@ module Rpc
     extend ServiceDsl
 
     class << self
+      attr_accessor :twirp_service_class
+
       def [](service_class)
         klass = Class.new(self)
         klass.twirp_service_class = service_class
@@ -14,8 +16,14 @@ module Rpc
       end
     end
 
+    delegate :twirp_service_class, to: :class
+
     def initialize(handler)
-      super(self.class.twirp_service_class.new(handler))
+      unless twirp_service_class.ancestors.include?(Twirp::Service)
+        raise ArgumentError, "Should not inherit directly from ServiceWrapper without passing in a twirp service class. usage: < ServiceWrapper[Example::MyService]"
+      end
+
+      super(twirp_service_class.new(handler))
     end
   end
 end
