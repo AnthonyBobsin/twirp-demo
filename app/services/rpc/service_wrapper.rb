@@ -2,20 +2,6 @@ module Rpc
   class ServiceWrapper < SimpleDelegator
     extend ServiceDsl
 
-    class << self
-      attr_accessor :twirp_service_class
-
-      def [](service_class)
-        klass = Class.new(self)
-        klass.twirp_service_class = service_class
-        klass
-      end
-
-      def inherited(subclass)
-        subclass.twirp_service_class = twirp_service_class
-      end
-    end
-
     delegate :twirp_service_class, to: :class
 
     def initialize(handler)
