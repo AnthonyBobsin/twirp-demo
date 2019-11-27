@@ -1,5 +1,6 @@
 module Rpc
   class ServiceWrapper < SimpleDelegator
+    # NOTE: deprecated, moving this functionality to handler
     extend ServiceDsl
 
     delegate :twirp_service_class, to: :class

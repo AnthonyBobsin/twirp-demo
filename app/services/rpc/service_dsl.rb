@@ -1,5 +1,7 @@
 module Rpc
   module ServiceDsl
+    # NOTE: deprecated, moving this functionality to handler
+
     attr_accessor :twirp_service_class, :before,
                   :on_success, :on_error, :exception_raised
 
