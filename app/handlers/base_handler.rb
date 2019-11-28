@@ -1,3 +1,3 @@
 class BaseHandler
-  extend HandlerDsl
+  extend HookDsl
 end
