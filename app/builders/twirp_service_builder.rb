@@ -1,25 +1,24 @@
 class TwirpServiceBuilder
-  attr_accessor :service_klass, :handler_klass
+  attr_accessor :service_klass, :handler
 
-  def initialize(service_klass, handler_klass)
+  def initialize(service_klass, handler)
     @service_klass = service_klass
-    @handler_klass = handler_klass
+    @handler = handler
   end
 
   def build
-    handler = handler_klass.new
-    service = service_klass.new(handler_klass.new)
+    service = service_klass.new(handler)
 
     # configure hooks
-    if handler_klass.is_a?(ServiceHookDsl)
+    if handler.class.is_a?(ServiceHookDsl)
       # make handler instance accessible to hooks
       service.before { |_, env| env[:handler] = handler}
 
       # apply handler's configured service hooks
-      handler_klass.configure_hooks(:before, service)
-      handler_klass.configure_hooks(:on_success, service)
-      handler_klass.configure_hooks(:on_error, service)
-      handler_klass.configure_hooks(:exception_raised, service)
+      handler.class.configure_hooks(:before, service)
+      handler.class.configure_hooks(:on_success, service)
+      handler.class.configure_hooks(:on_error, service)
+      handler.class.configure_hooks(:exception_raised, service)
     end
 
     service.exception_raised do |e, env|

@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   extend ServiceRouteDsl
 
   namespace :rpc do
-    mount_service Demo::V1::LocationRetrievalService, LocationRetrievalServiceHandler
+    # mount_service Demo::V1::LocationRetrievalService, LocationRetrievalServiceHandler.new
+    mount_service Demo::V1::LocationRetrievalService, LocationRetrievalServiceHandlerV2
   end
 end
