@@ -11,13 +11,11 @@ class TwirpServiceBuilder
     service = service_klass.new(handler_klass.new)
 
     # configure hooks
-    # ServiceHookDsl provided handler hooks
-    if handler_klass.respond_to?(:configure_hooks)
-      service.before do |rack_env, env|
-        # allow handler to be accessible for hooks
-        env[:handler] = handler
-      end
+    if handler_klass.is_a?(ServiceHookDsl)
+      # make handler instance accessible to hooks
+      service.before { |_, env| env[:handler] = handler}
 
+      # apply handler's configured service hooks
       handler_klass.configure_hooks(:before, service)
       handler_klass.configure_hooks(:on_success, service)
       handler_klass.configure_hooks(:on_error, service)

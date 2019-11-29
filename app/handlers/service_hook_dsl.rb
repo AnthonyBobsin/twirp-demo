@@ -45,7 +45,7 @@ module ServiceHookDsl
   # create a before hook that applies the received validator class to input.
   # will abort request with validation error if invalid
   def validate_input(validator_klass, options = {})
-    unless validator_klass.is_a?(ActiveModel::Validator)
+    unless validator_klass.include?(ActiveModel::Validations)
       raise ArgumentError, "validator class should be an ActiveModel::Validator"
     end
 
