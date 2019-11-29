@@ -1,5 +1,5 @@
-class ApplicationHandler < ActionHandler::Base
-  before_action :authenticate_user
+class ApplicationHandler < ServiceHandler::Base
+  before_rpc :authenticate_user
 
   attr_reader :req, :env
 
@@ -8,7 +8,7 @@ class ApplicationHandler < ActionHandler::Base
     @env = env
   end
 
-  def action_name
+  def rpc_method
     env[:ruby_method].to_s
   end
 

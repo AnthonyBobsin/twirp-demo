@@ -1,4 +1,4 @@
-module ActionHandler
+module ServiceHandler
   module Callbacks
     extend ActiveSupport::Concern
     include ActiveSupport::Callbacks
@@ -6,7 +6,7 @@ module ActionHandler
     included do
       attr_accessor :hook_error
 
-      define_callbacks :process_action,
+      define_callbacks :handle_rpc,
         terminator: -> (handler, result_lambda) do
           result = result_lambda.call
           if result.is_a?(Twirp::Error)
@@ -17,8 +17,8 @@ module ActionHandler
         skip_after_callbacks_if_terminated: true
     end
 
-    def process_action
-      run_callbacks(:process_action) do
+    def handle_rpc
+      run_callbacks(:handle_rpc) do
         yield
       end || hook_error
     end
@@ -32,7 +32,7 @@ module ActionHandler
       def _normalize_callback_option(options, from, to) # :nodoc:
         if from = options[from]
           _from = Array(from).map(&:to_s).to_set
-          from = proc { |h| _from.include? h.action_name }
+          from = proc { |h| _from.include? h.rpc_method }
           options[to] = Array(options[to]).unshift(from)
         end
       end
@@ -47,21 +47,21 @@ module ActionHandler
       end
 
       [:before, :after, :around].each do |callback|
-        define_method "#{callback}_action" do |*names, &blk|
+        define_method "#{callback}_rpc" do |*names, &blk|
           _insert_callbacks(names, blk) do |name, options|
-            set_callback(:process_action, callback, name, options)
+            set_callback(:handle_rpc, callback, name, options)
           end
         end
 
-        define_method "prepend_#{callback}_action" do |*names, &blk|
+        define_method "prepend_#{callback}_rpc" do |*names, &blk|
           _insert_callbacks(names, blk) do |name, options|
-            set_callback(:process_action, callback, name, options.merge(prepend: true))
+            set_callback(:handle_rpc, callback, name, options.merge(prepend: true))
           end
         end
 
-        define_method "skip_#{callback}_action" do |*names|
+        define_method "skip_#{callback}_rpc" do |*names|
           _insert_callbacks(names) do |name, options|
-            skip_callback(:process_action, callback, name, options)
+            skip_callback(:handle_rpc, callback, name, options)
           end
         end
       end

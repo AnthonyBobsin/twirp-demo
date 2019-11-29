@@ -1,16 +1,15 @@
-module ActionHandler
+module ServiceHandler
   module Validation
     extend ActiveSupport::Concern
 
     module ClassMethods
-      def use_validator(validator_klass, **opts)
-        unless validator_klass.include?(ActiveModel::Validations)
+      def validate_input(rpc, with:)
+        unless with.include?(ActiveModel::Validations)
           raise ArgumentError, "validator class should include ActiveModel::Validations"
         end
 
-        before_action **opts do
-          validator = validator_klass.new(env[:input])
-          validator.valid?
+        before_rpc only: rpc do
+          validator = with.new(env[:input])
           validator.valid? || twirp_validation_error(validator.errors)
         end
       end
