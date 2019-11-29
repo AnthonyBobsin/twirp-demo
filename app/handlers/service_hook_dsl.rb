@@ -5,7 +5,22 @@ module ServiceHookDsl
 
   def service_hooks(&block)
     # TODO: set instance var to error out if hooks aren't within service_hooks block
-    instance_exec(&block)
+    if block_given?
+      @service_hooks = block
+      instance_exec(&block)
+    else
+      @service_hooks
+    end
+  end
+
+  def copy_service_hooks(from)
+    return if from.service_hooks.nil?
+    service_hooks(&from.service_hooks)
+  end
+
+  def inherited(base)
+    super
+    base.copy_service_hooks(self)
   end
 
   VALID_HOOKS.each do |hook|
@@ -16,6 +31,7 @@ module ServiceHookDsl
     #   before :authenticate_user, except: :create_user
     #   exception_raised, :log_internal_error
     # end
+
     define_method hook do |method, options = {}|
       hook_var_name = "@#{hook}_hooks"
       existing_hooks = instance_variable_get(hook_var_name)
