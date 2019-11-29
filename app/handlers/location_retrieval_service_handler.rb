@@ -1,7 +1,8 @@
 class LocationRetrievalServiceHandler < BaseHandler
   service_hooks do
-    validate GetLocationsRequestValidator, if: :get_locations
     before :log_location, if: :get_locations
+
+    validate_input GetLocationsRequestValidator, if: :get_locations
   end
 
   def get_locations(req, env)

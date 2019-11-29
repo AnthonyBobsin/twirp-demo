@@ -1,12 +1,14 @@
 module ServiceHookDsl
   extend ActiveSupport::Concern
 
+  VALID_HOOKS = [:before, :on_success, :on_error, :exception_raised]
+
   def service_hooks(&block)
     # TODO: set instance var to error out if hooks aren't within service_hooks block
     instance_exec(&block)
   end
 
-  [:before, :on_success, :on_error, :exception_raised].each do |hook|
+  VALID_HOOKS.each do |hook|
     # hook configuration methods for all supported twirp hooks
     #
     # usage:
@@ -26,16 +28,18 @@ module ServiceHookDsl
     end
   end
 
-  def validate(validator_klass, options = {})
+  def validate_input(validator_klass, options = {})
     before lambda { |rack_env, env|
       validator = validator_klass.new(env[:input])
-      return if validator.valid?
-
       validator.valid? || twirp_validation_error(validator.errors)
     }, **options, name: validator_klass.to_s
   end
 
   def configure_hooks(hook_type, service)
+    unless VALID_HOOKS.include?(hook_type)
+      raise ArgumentError, "unknown twirp hook type received: #{hook_type}"
+    end
+
     existing_hooks = instance_variable_get("@#{hook_type}_hooks")
     return if existing_hooks.nil?
 
