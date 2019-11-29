@@ -13,6 +13,7 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
     end
     add_message "demo.v1.GetLocationsRequest" do
       optional :warehouse_id, :int64, 1
+      optional :fake, :string, 2
     end
     add_message "demo.v1.GetLocationsResponse" do
       repeated :locations, :message, 1, "demo.v1.Location"
@@ -22,8 +23,8 @@ end
 
 module Demo
   module V1
-    Location = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("demo.v1.Location").msgclass
-    GetLocationsRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("demo.v1.GetLocationsRequest").msgclass
-    GetLocationsResponse = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("demo.v1.GetLocationsResponse").msgclass
+    Location = Google::Protobuf::DescriptorPool.generated_pool.lookup("demo.v1.Location").msgclass
+    GetLocationsRequest = Google::Protobuf::DescriptorPool.generated_pool.lookup("demo.v1.GetLocationsRequest").msgclass
+    GetLocationsResponse = Google::Protobuf::DescriptorPool.generated_pool.lookup("demo.v1.GetLocationsResponse").msgclass
   end
 end

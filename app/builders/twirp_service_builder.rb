@@ -13,9 +13,24 @@ class TwirpServiceBuilder
   def build
     validate_args!
 
-    srv = service_klass.new(handler_klass.new)
-    # add hooks and base instance behaviour
-    srv
+    handler = handler_klass.new
+    service = service_klass.new(handler_klass.new)
+
+    # configure hooks
+    service.before do |rack_env, env|
+      # allow handler to be accessible for hooks
+      env[:handler] = handler
+    end
+    handler_klass.before_hooks.each do |hook|
+      service.before(&hook)
+    end
+
+    service.exception_raised do |e, env|
+      Rails.logger.error e.backtrace.take(20).reverse.join("\n")
+      Rails.logger.error e
+    end
+
+    service
   end
 
   private

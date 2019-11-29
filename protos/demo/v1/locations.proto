@@ -11,6 +11,7 @@ message Location {
 
 message GetLocationsRequest {
   int64 warehouse_id = 1;
+  string fake = 2;
 }
 
 message GetLocationsResponse {
