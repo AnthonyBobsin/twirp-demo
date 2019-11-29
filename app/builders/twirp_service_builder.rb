@@ -21,8 +21,13 @@ class TwirpServiceBuilder
       # allow handler to be accessible for hooks
       env[:handler] = handler
     end
-    handler_klass.before_hooks.each do |hook|
-      service.before(&hook)
+
+    # ServiceHookDsl provided handler hooks
+    if handler_klass.respond_to?(:configure_hooks)
+      handler_klass.configure_hooks(:before, service)
+      handler_klass.configure_hooks(:on_success, service)
+      handler_klass.configure_hooks(:on_error, service)
+      handler_klass.configure_hooks(:exception_raised, service)
     end
 
     service.exception_raised do |e, env|

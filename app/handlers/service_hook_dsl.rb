@@ -2,7 +2,28 @@ module ServiceHookDsl
   extend ActiveSupport::Concern
 
   def service_hooks(&block)
+    # TODO: set instance var to error out if hooks aren't within service_hooks block
     instance_exec(&block)
+  end
+
+  [:before, :on_success, :on_error, :exception_raised].each do |hook|
+    # hook configuration methods for all supported twirp hooks
+    #
+    # usage:
+    # service_hooks do
+    #   before :authenticate_user, except: :create_user
+    #   exception_raised, :log_internal_error
+    # end
+    define_method hook do |method, options = {}|
+      hook_var_name = "@#{hook}_hooks"
+      existing_hooks = instance_variable_get(hook_var_name)
+      if existing_hooks.nil?
+        existing_hooks = {}
+        instance_variable_set(hook_var_name, existing_hooks)
+      end
+
+      define_hook(existing_hooks, method, options)
+    end
   end
 
   def validate(validator_klass, options = {})
@@ -14,21 +35,29 @@ module ServiceHookDsl
     }, **options, name: validator_klass.to_s
   end
 
-  def before(method, options = {})
-    @before_hooks ||= {}
-    @before_hooks[options[:name] || method] = lambda do |rack_env, env|
-      return if CallbackHelpers.skip?(env, options)
-      instance_exec(&CallbackHelpers.make_execute_lambda(method, rack_env, env))
+  def configure_hooks(hook_type, service)
+    existing_hooks = instance_variable_get("@#{hook_type}_hooks")
+    return if existing_hooks.nil?
+
+    existing_hooks.values.each do |hook|
+      service.send(hook_type, &hook)
     end
   end
 
-  def before_hooks
-    # hashes are ordered by entry so this will
-    # allow for override with different match filters
-    @before_hooks.values
-  end
-
   private
+
+  def define_hook(hooks, method, options)
+    hook_name = options[:name] || method
+    if hook_name.is_a?(Proc)
+      raise ArgumentError, "name option required when using proc for method"
+    end
+
+    hooks[hook_name] = lambda do |*args|
+      env = args.find { |arg| arg.is_a?(Hash) && arg.key?(:input) }
+      return if CallbackHelpers.skip?(env, options)
+      instance_exec(&CallbackHelpers.make_execute_lambda(method, env[:handler], *args))
+    end
+  end
 
   def format_meta(meta)
     # Twirp::Error only accepts hash meta with string values
@@ -39,10 +68,10 @@ module ServiceHookDsl
   end
 
   def twirp_validation_error(errors)
-    # NOTE: move to twirp error builder
+    # TODO: move to twirp error builder
     Twirp::Error.invalid_argument(
       'The request could not be understood by the server due to malformed syntax',
-      format_meta(validator.errors.messages)
+      format_meta(errors.messages)
     )
   end
 
@@ -54,18 +83,16 @@ module ServiceHookDsl
         match_unless_filter?(env, options[:unless])
     end
 
-    def make_execute_lambda(method, rack_env, env)
+    def make_execute_lambda(method, handler, *args)
       lambda do
         if method.is_a?(Proc)
-          return method.call(rack_env, env)
+          return method.call(*args)
         end
 
-        handler = env[:handler]
-
         if handler.respond_to?(method, true)
-          handler.send(method, rack_env, env)
+          handler.send(method, *args)
         elsif respond_to?(method, true)
-          send(method, rack_env, env)
+          send(method, *args)
         else
           raise NameError, "undefined method #{method}"
         end

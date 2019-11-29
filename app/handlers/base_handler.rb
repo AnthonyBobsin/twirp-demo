@@ -8,6 +8,15 @@ class BaseHandler
     end
   end
 
+  # NOTE:
+  # functionality to add
+  # - ensure handler is set in before
+  # - error and rollbar (service builder?)
+  # - request store?
+  # - stick to master
+  # - InstacartCore::Owner
+  #
+
   private
 
   def authenticate_user(_rack_env, env)
