@@ -1,37 +1,35 @@
 module ServiceHookDsl
-  extend ActiveSupport::Concern
+  include HookGroup
+
+  # usage:
+  # class MyHandler
+  #   extend ServiceHookDsl
+  #
+  #   service_hooks do
+  #     before :authenticate_user, except: :create_user
+  #     exception_raised :log_internal_error
+  #
+  #     validate_input CreateUserRequestValidator, if: :create_user
+  #   end
+  #
+  #   def get_user(req, env)
+  #     # authenticate_user hook is applied
+  #   end
+  #
+  #   def create_user(req, env)
+  #     # authenticate_user hook is NOT applied
+  #   end
+  #
+  #   private
+  #
+  #   def log_internal_error(e, env)
+  #     log "oh dear"
+  #   end
+  # end
 
   VALID_HOOKS = [:before, :on_success, :on_error, :exception_raised]
-
-  def service_hooks(&block)
-    # TODO: set instance var to error out if hooks aren't within service_hooks block
-    if block_given?
-      @service_hooks = block
-      instance_exec(&block)
-    else
-      @service_hooks
-    end
-  end
-
-  def copy_service_hooks(from)
-    return if from.service_hooks.nil?
-    service_hooks(&from.service_hooks)
-  end
-
-  def inherited(base)
-    super
-    base.copy_service_hooks(self)
-  end
-
   VALID_HOOKS.each do |hook|
     # hook configuration methods for all supported twirp hooks
-    #
-    # usage:
-    # service_hooks do
-    #   before :authenticate_user, except: :create_user
-    #   exception_raised, :log_internal_error
-    # end
-
     define_method hook do |method, options = {}|
       hook_var_name = "@#{hook}_hooks"
       existing_hooks = instance_variable_get(hook_var_name)
@@ -44,13 +42,20 @@ module ServiceHookDsl
     end
   end
 
+  # create a before hook that applies the received validator class to input.
+  # will abort request with validation error if invalid
   def validate_input(validator_klass, options = {})
-    before lambda { |rack_env, env|
+    unless validator_klass.is_a?(ActiveModel::Validator)
+      raise ArgumentError, "validator class should be an ActiveModel::Validator"
+    end
+
+    before lambda { |_rack_env, env|
       validator = validator_klass.new(env[:input])
       validator.valid? || twirp_validation_error(validator.errors)
     }, **options, name: validator_klass.to_s
   end
 
+  # used when constructing service to apply handler's configured service hooks
   def configure_hooks(hook_type, service)
     unless VALID_HOOKS.include?(hook_type)
       raise ArgumentError, "unknown twirp hook type received: #{hook_type}"
@@ -66,6 +71,9 @@ module ServiceHookDsl
 
   private
 
+  # creates a wrapped lambda for received hook config and registers it to hooks.
+  # method can be a Proc or name of instance or class method on the handler.
+  # options :if and :unless are respected here.
   def define_hook(hooks, method, options)
     hook_name = options[:name] || method
     if hook_name.is_a?(Proc)
